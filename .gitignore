@@ -1,0 +1,36 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.so
+
+# Ignore media and static files (if managed outside version control)
+media/
+staticfiles/
+
+# Ignore env files (environment variables, secrets)
+.env
+
+# VS Code settings
+.vscode/
+
+# JetBrains IDEs settings
+.idea/
+
+# MacOS
+.DS_Store
+
+# Linux
+*~

@@ -7,7 +7,9 @@ const sizes = {
 }
 
 const physicalConstants = {
-    earthGravity: 300
+    earthGravity: 9.81,
+    marsGravity: 3.71,
+    marsFriction: 0.1
 }
 
 
@@ -75,12 +77,46 @@ class MarsScene extends Phaser.Scene {
     }
     preload() {
         this.load.image('mars-background', 'res/marsbackground.jpg');
+        this.load.spritesheet('martian', 'res/martian.png', {frameWidth: 122, frameHeight: 158})
     }
     create() {
         console.log('Mars Scene')
         this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'mars-background');
+        this.martian = this.createInteractable('martian', 122, 158, 1);
     }
     update() {}
+
+    createInteractable(name, width, height, scale) {
+        var temp = this.physics.add.sprite(width, height, name).setScale(scale, scale);
+        temp.setActive(true);
+        temp.velocityScaleX = 1;
+        temp.velocityScaleYs = 1;
+
+        // Mars physics
+        temp.setBounce(0);
+        temp.setFriction(0);
+        temp.setGravityY(physicalConstants.marsGravity);
+        temp.setCollideWorldBounds(true);
+
+        temp.setInteractive();
+
+        this.input.setDraggable(temp);
+
+        this.input.on('dragstart', function (pointer, gameObject) {
+            gameObject.body.moves = false;
+        });
+
+        this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
+            gameObject.x = dragX;
+            gameObject.y = dragY;
+        });
+
+        this.input.on('dragend', function (pointer, gameObject) {
+            gameObject.body.moves = true;
+        });
+
+        return temp;
+    } 
 }
 
 const config = {
@@ -91,7 +127,7 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: {y:physicalConstants.earthGravity},
+            // gravity: {y:physicalConstants.earthGravity},
             debug:true
         }
     },

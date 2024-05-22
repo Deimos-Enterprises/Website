@@ -94,11 +94,10 @@ class MarsScene extends Phaser.Scene {
         this.isEarth = false;
         this.keyE = this.input.keyboard.addKey('E');
 
-        this.timerText = this.add.text(sizes.width * 0.5, sizes.height * 0.5, '0:0', { font: '"Press Start 2P"' });
-        // this.timer = this.time.addEvent({ delay: 1000, callback: onEvent, callbackScope: this, loop: true });
-        // this.timer
+        this.timerText = this.add.text(sizes.width * 0.5, sizes.height * 0.5, 'Time Falling: 0:0', { font: '"Press Start 2P"' });
+        this.lastTime = 0;
     }
-    update() {
+    update(time, delta) {
         if(Phaser.Input.Keyboard.JustDown(this.keyE)) {
             this.isEarth = !this.isEarth;
         }
@@ -113,15 +112,24 @@ class MarsScene extends Phaser.Scene {
             this.earthBackground.setVisible(true);
             this.martian.setGravityY(physicalConstants.earthGravity * scalingConstants.gravityScale);
         }
+
+        if(this.martian.body.velocity.y == 0) {
+            this.timerText.text = 'Time Falling: 0:0';
+            this.lastTime = time * 0.001;
+        }else {
+            this.timerText.text = 'Time Falling: ' + this.formatTime(time * 0.001 - this.lastTime);
+        }
     }
 
     formatTime(seconds){
         // Minutes
+        // seconds = this.time.totalElapsedSeconds();
         var minutes = Math.floor(seconds/60);
         // Seconds
         var partInSeconds = seconds%60;
         // Adds left zeros to seconds
         partInSeconds = partInSeconds.toString().padStart(2,'0');
+        // partInSeconds = Math.round((partInSeconds + Number.EPSILON) * 100) / 100
         // Returns formated time
         return `${minutes}:${partInSeconds}`;
     }

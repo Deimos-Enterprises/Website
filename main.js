@@ -86,6 +86,7 @@ class MarsScene extends Phaser.Scene {
     }
     create() {
         console.log('Mars Scene')
+
         this.earthBackground = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'earth-background');
         this.earthBackground.setScale(sizes.width / 313, sizes.height / 200);
         this.marsBackground = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'mars-background');
@@ -94,8 +95,10 @@ class MarsScene extends Phaser.Scene {
         this.isEarth = false;
         this.keyE = this.input.keyboard.addKey('E');
 
-        this.timerText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Time Falling: 0:0', { font: '"Press Start 2P"' });
+        this.timerText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Time Falling(s): 0', { font: '"Press Start 2P"' });
         this.timerText.setScale(3, 3); 
+        this.velocityText = this.add.text(0.01 * sizes.width, sizes.height * 0.06, 'Vertical Velocity(m/s): 0', { font: '"Press Start 2P"' });
+        this.velocityText.setScale(3, 3);
         this.lastTime = 0;
     }
     update(time, delta) {
@@ -115,11 +118,12 @@ class MarsScene extends Phaser.Scene {
         }
 
         if(this.martian.body.velocity.y == 0) {
-            // this.timerText.text = 'Time Falling: 0:0';
             this.lastTime = time * 0.001;
         }else {
-            this.timerText.text = 'Time Falling: ' + this.formatTime(time * 0.001 - this.lastTime);
+            this.timerText.text = 'Time Falling(s): ' + this.formatTime(time * 0.001 - this.lastTime);
         }
+        var velocity = Math.round((this.martian.body.velocity.y + Number.EPSILON) * 1000) / 1000;
+        this.velocityText.text = 'Vertical Velocity(m/s): ' + `${velocity}`;
     }
 
     formatTime(seconds){
@@ -131,7 +135,8 @@ class MarsScene extends Phaser.Scene {
         // Adds left zeros to seconds
         partInSeconds = partInSeconds.toString().padStart(2,'0');
         // Returns formated time
-        return `${minutes}:${partInSeconds}`;
+        // return `${minutes}:${partInSeconds}`;
+        return `${partInSeconds}`;
     }
     
 

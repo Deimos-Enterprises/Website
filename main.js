@@ -12,8 +12,9 @@ const physicalConstants = {
     marsFriction: 0.1
 }
 
-const scalingConstants = {
-    gravityScale: 50
+const imageConstants = {
+    tileWidth: 32,
+    tileHeight: 32
 }
 
 
@@ -80,121 +81,98 @@ class MarsScene extends Phaser.Scene {
         super('mars-scene')
     }
     preload() {
-        this.load.image('mars-background', 'res/marsbackground.jpg');
-        this.load.image('earth-background', 'res/earthbackground.jpg');
-        this.load.spritesheet('martian', 'res/martian.png', {frameWidth: 122, frameHeight: 158})
+        this.load.image('mars-surface', 'res/marssurface.png');
+        this.load.image('mars-underground', 'res/marsunderground.png');
+        this.load.spritesheet('astronaut', 'res/astronaut.png', {frameWidth: 24, frameHeight: 24})
     }
     create() {
         console.log('Mars Scene')
 
-        this.earthBackground = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'earth-background');
-        this.earthBackground.setScale(sizes.width / 313, sizes.height / 200);
-        this.marsBackground = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'mars-background');
-        this.martian = this.createInteractable('martian', 122, 158, 1, [0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+        this.cameras.main.setBackgroundColor('#e77d11');
 
-        this.isEarth = false;
-        this.keyE = this.input.keyboard.addKey('E');
+        //create objects
+        this.map = this.createDrillArea(15, 20);
+        this.player = this.createPlayer(24, 24);
 
-        this.timerText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Time Falling(s): 0', { font: '"Press Start 2P"' });
-        this.timerText.setScale(3, 3); 
-        this.velocityText = this.add.text(0.01 * sizes.width, sizes.height * 0.06, 'Vertical Velocity(m/s): 0', { font: '"Press Start 2P"' });
-        this.velocityText.setScale(3, 3);
-        this.lastTime = 0;
+        //create input
+        this.keyW = this.input.keyboard.addKey('W');
+        this.keyA = this.input.keyboard.addKey('A');
+        this.keyS = this.input.keyboard.addKey('S');
+        this.keyD = this.input.keyboard.addKey('D');
+
+        //create trackers
+        this.monthText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Months Elapsed: 0', { font: '"Press Start 2P"' });
+        this.months = 0;
     }
     update(time, delta) {
-        if(Phaser.Input.Keyboard.JustDown(this.keyE)) {
-            this.isEarth = !this.isEarth;
+        if(Phaser.Input.Keyboard.JustDown(this.keyW)) {
+            
         }
-
-        if(this.isEarth) {
-            this.earthBackground.setVisible(false);
-            this.marsBackground.setVisible(true);
-            this.martian.setGravityY(physicalConstants.marsGravity * scalingConstants.gravityScale);
-
-        } else {
-            this.marsBackground.setVisible(false);
-            this.earthBackground.setVisible(true);
-            this.martian.setGravityY(physicalConstants.earthGravity * scalingConstants.gravityScale);
+        else if(Phaser.Input.Keyboard.JustDown(this.keyA) && this.player.x - this.tileWidth >= 0) {
+            this.player.x -= this.tileWidth
+            this.playerColumn--;
+            this.updateTime();
+            this.mineBlock();
         }
-
-        if(this.martian.body.velocity.y == 0) {
-            this.lastTime = time * 0.001;
-        }else {
-            this.timerText.text = 'Time Falling(s): ' + this.formatTime(time * 0.001 - this.lastTime);
+        else if(Phaser.Input.Keyboard.JustDown(this.keyS) && this.player.y + this.tileHeight < sizes.height) {
+            this.player.y += this.tileHeight;
+            this.playerRow++;
+            this.updateTime();
+            this.mineBlock();
         }
-        var velocity = Math.round((this.martian.body.velocity.y + Number.EPSILON) * 1000) / 1000;
-        this.velocityText.text = 'Vertical Velocity(m/s): ' + `${velocity}`;
-    }
-
-    formatTime(seconds){
-        // Minutes
-        var minutes = Math.floor(seconds/60);
-        // Seconds
-        var partInSeconds = seconds%60;
-        partInSeconds = Math.round((partInSeconds + Number.EPSILON) * 1000) / 1000;
-        // Adds left zeros to seconds
-        partInSeconds = partInSeconds.toString().padStart(2,'0');
-        // Returns formated time
-        // return `${minutes}:${partInSeconds}`;
-        return `${partInSeconds}`;
-    }
-    
-
-    switchPlanets() {
-        if(this.isEarth) {
-            console.log('switch to earth');
-            this.background.setTexture('earth-background');
-        } else {
-            console.log('switch to mars');
-            this.background.setTexture('mars-background');
+        else if(Phaser.Input.Keyboard.JustDown(this.keyD) && this.player.x + this.tileWidth < sizes.width) {
+            this.player.x += this.tileWidth;
+            this.playerColumn++;
+            this.updateTime();
+            this.mineBlock();
         }
     }
 
-    createInteractable(name, width, height, scale, moving, idle) {
-        var temp = this.physics.add.sprite(width, height, name).setScale(scale, scale);
-        temp.setActive(true);
-        temp.velocityScaleX = 1;
-        temp.velocityScaleYs = 1;
+    createDrillArea(rows, columns) {
+        let map = new Array(rows);
+        this.tileHeight = sizes.height / (rows + 1);
+        this.tileWidth = sizes.width / columns;
+        let currentTile = 'mars-surface';
+        let heightScale = this.tileHeight / imageConstants.tileHeight;
+        let widthScale = this.tileWidth / imageConstants.tileWidth;
+        for(let r = 0; r < rows; r++) {
+            map[r] = new Array(columns);
+            if(r > 0) currentTile = 'mars-underground' 
+            for(let c = 0; c < columns; c++) {
+                map[r][c] = new Array(2);
+                map[r][c][0] = this.add.image(c * this.tileWidth + (0.5 * this.tileWidth), this.tileHeight + (r * this.tileHeight) + (0.5 * this.tileHeight), currentTile)
+                    .setScale(widthScale, heightScale);
+                map[r][c][1] = true;
+            }
+        }
+        return map;
+    }
+        
+    createPlayer(width, height) {
+        var widthScale = this.tileWidth / width;
+        var heightScale = this.tileHeight / height;
+        var player = this.physics.add.sprite(0.5 * width * widthScale, 0.5 * height * heightScale, 'astronaut').setScale(widthScale, heightScale);
+        this.playerRow = -1;
+        this.playerColumn = 0;
+        return player;
+    }
 
-        //animations
-        this.anims.create({
-            key: name + '-moving',
-            frames: this.anims.generateFrameNumbers(name, {frames: moving}),
-            frameRate: 8,
-            repeat: -1
-        });
-        this.anims.create({
-            key: name + '-idle',
-            frames: this.anims.generateFrameNumbers(name, {frames: idle}),
-            frameRate: 8,
-            repeat: -1
-        });
+    updateTime() {
+        if(this.playerRow > 0) this.months += 3;
+        this.monthText.text = 'Months Elapsed: ' + `${this.months}`;
+    }
 
-        // Mars physics
-        temp.setBounce(0);
-        temp.setFriction(0);
-        temp.setGravityY(physicalConstants.earthGravity * scalingConstants.gravityScale);
-        temp.setCollideWorldBounds(true);
+    mineBlock() {
+        this.map[this.playerRow][this.playerColumn][0].setVisible(false);
+        this.map[this.playerRow][this.playerColumn][1] = false;
 
-        temp.setInteractive();
-
-        this.input.setDraggable(temp);
-
-        this.input.on('dragstart', function (pointer, gameObject) {
-            gameObject.body.moves = false;
-        });
-
-        this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
-            gameObject.x = dragX;
-            gameObject.y = dragY;
-        });
-
-        this.input.on('dragend', function (pointer, gameObject) {
-            gameObject.body.moves = true;
-        });
-
-        return temp;
-    } 
+        let blocksAbove = 0;
+        for(let r = 0; r < this.playerRow; r++) {
+            if(this.map[r][this.playerColumn][1] === true) blocksAbove++;
+        }
+        if(blocksAbove >= 2) console.log('game over');
+        console.log(blocksAbove);
+    }
 }
 
 class EarthScene extends Phaser.Scene {

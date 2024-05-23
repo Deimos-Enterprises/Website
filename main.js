@@ -14,7 +14,10 @@ const physicalConstants = {
 
 const imageConstants = {
     tileWidth: 32,
-    tileHeight: 32
+    tileHeight: 32,
+    surface: 'mars-surface',
+    underground: 'mars-underground',
+    uranium: 'mars-uranium'
 }
 
 
@@ -81,8 +84,9 @@ class MarsScene extends Phaser.Scene {
         super('mars-scene')
     }
     preload() {
-        this.load.image('mars-surface', 'res/marssurface.png');
-        this.load.image('mars-underground', 'res/marsunderground.png');
+        this.load.image(imageConstants.surface, 'res/marssurface.png');
+        this.load.image(imageConstants.underground, 'res/marsunderground.png');
+        this.load.image(imageConstants.uranium, 'res/marsuranium.png');
         this.load.spritesheet('astronaut', 'res/astronaut.png', {frameWidth: 24, frameHeight: 24})
     }
     create() {
@@ -101,15 +105,31 @@ class MarsScene extends Phaser.Scene {
         this.keyD = this.input.keyboard.addKey('D');
 
         //create trackers
-        this.monthText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Months Elapsed: 0', { font: '"Press Start 2P"' });
+        this.gameOver = false;
+        this.monthText = this.add.text(0.25 * sizes.width, sizes.height * 0.01, 'Days Elapsed: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
         this.months = 0;
+        this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
+        this.uranium = 0;
     }
     update(time, delta) {
+        if(this.gameOver) return;
+
+        // this.aboveFree = false;
         if(Phaser.Input.Keyboard.JustDown(this.keyW)) {
-            
+            // if(this.playerRow > 0) {
+            //     if(this.map[this.playerRow - 1][this.playerColumn][1] == true) return;
+            // } else if( this.playerRow < 0) return;
+            // console.log('reached');
+            // this.aboveFree = true;
+            // if(this.map[this.playerRow - 1][this.playerColumn - 1][1] == true) return
+            // console.log('jump left');
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyA) && this.player.x - this.tileWidth >= 0) {
-            this.player.x -= this.tileWidth
+            // if(this.aboveFree && this.map[this.playerRow - 1][this.playerColumn - 1][1] == false) {
+            //     console.log('jump left')
+            // }
+            // this.aboveFree = false;
+            this.player.x -= this.tileWidth;
             this.playerColumn--;
             this.updateTime();
             this.mineBlock();
@@ -121,6 +141,10 @@ class MarsScene extends Phaser.Scene {
             this.mineBlock();
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyD) && this.player.x + this.tileWidth < sizes.width) {
+            // if(this.aboveFree && this.map[this.playerRow - 1][this.playerColumn + 1][1] == false) {
+            //     console.log('jump right')
+            // }
+            // this.aboveFree = false;
             this.player.x += this.tileWidth;
             this.playerColumn++;
             this.updateTime();
@@ -132,17 +156,24 @@ class MarsScene extends Phaser.Scene {
         let map = new Array(rows);
         this.tileHeight = sizes.height / (rows + 1);
         this.tileWidth = sizes.width / columns;
-        let currentTile = 'mars-surface';
+        let currentTile = imageConstants.surface;
         let heightScale = this.tileHeight / imageConstants.tileHeight;
         let widthScale = this.tileWidth / imageConstants.tileWidth;
         for(let r = 0; r < rows; r++) {
             map[r] = new Array(columns);
-            if(r > 0) currentTile = 'mars-underground' 
+            let rand;
             for(let c = 0; c < columns; c++) {
-                map[r][c] = new Array(2);
+                if(r > 0) {
+                    let rand = Math.floor(Math.random() * (101 - r));
+                    currentTile = imageConstants.underground;
+                    if(rand == 0) currentTile = imageConstants.uranium;
+                }
+
+                map[r][c] = new Array(3);
                 map[r][c][0] = this.add.image(c * this.tileWidth + (0.5 * this.tileWidth), this.tileHeight + (r * this.tileHeight) + (0.5 * this.tileHeight), currentTile)
                     .setScale(widthScale, heightScale);
                 map[r][c][1] = true;
+                map[r][c][2] = currentTile;
             }
         }
         return map;
@@ -158,19 +189,27 @@ class MarsScene extends Phaser.Scene {
     }
 
     updateTime() {
-        if(this.playerRow > 0) this.months += 3;
-        this.monthText.text = 'Months Elapsed: ' + `${this.months}`;
+        if(this.playerRow >= 0 && this.map[this.playerColumn][this.playerColumn][1] === true) this.months += 3;
+        this.monthText.text = 'Days Elapsed: ' + `${this.months}`;
     }
 
     mineBlock() {
+        if(this.playerRow < 0) return;
         this.map[this.playerRow][this.playerColumn][0].setVisible(false);
         this.map[this.playerRow][this.playerColumn][1] = false;
+        if(this.map[this.playerRow][this.playerColumn][2] == imageConstants.uranium) {
+            this.uranium++;
+            this.uraniumText.text = 'Uranium Collected: ' + `${this.uranium}`;
+        }
 
         let blocksAbove = 0;
         for(let r = 0; r < this.playerRow; r++) {
             if(this.map[r][this.playerColumn][1] === true) blocksAbove++;
         }
-        if(blocksAbove >= 2) console.log('game over');
+        if(blocksAbove >= 3) {
+            this.gameOver = true;
+            this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Game Over: The Ground Above You Collapsed!', { font: '"Press Start 2P"' }).setOrigin(0.5).setScale(3, 3);
+        }
         console.log(blocksAbove);
     }
 }

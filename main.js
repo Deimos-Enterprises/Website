@@ -20,6 +20,12 @@ const imageConstants = {
     uranium: 'mars-uranium'
 }
 
+const resourceConstants = {
+    idle: 0.001,
+    moving: 0.02,
+    mining: 0.06
+}
+
 
 class TitleScene extends Phaser.Scene {
     constructor() {
@@ -97,6 +103,7 @@ class MarsScene extends Phaser.Scene {
         //create objects
         this.map = this.createDrillArea(15, 20);
         this.player = this.createPlayer(24, 24);
+        this.playerSpeed = this.tileWidth * 3;
         
         //add collisions
         this.colliders = this.addCollisions();
@@ -113,6 +120,8 @@ class MarsScene extends Phaser.Scene {
 
         //create trackers
         this.gameOver = false;
+        this.energy = 100;
+        this.energyText = this.add.text(0.125 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: '"Press Start 2P"' }).setOrigin(0.5);
         this.monthText = this.add.text(0.25 * sizes.width, sizes.height * 0.01, 'Days Elapsed: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
         this.months = 0;
         this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
@@ -123,37 +132,39 @@ class MarsScene extends Phaser.Scene {
 
         if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
             this.player.setVelocityY(-65);
+            this.energy -= resourceConstants.moving;
         }
-        else if(Phaser.Input.Keyboard.JustDown(this.keyA) && this.player.x - this.tileWidth >= 0) {
-            this.player.x -= this.tileWidth;
-            this.playerColumn--;
+        else if(this.keyA.isDown) {
+            this.player.setVelocityX(-this.playerSpeed);
+            this.energy -= resourceConstants.moving;
             this.updateTime();
-            this.mineBlock();
         }
-        else if(Phaser.Input.Keyboard.JustDown(this.keyS) && this.player.y + this.tileHeight < sizes.height) {
-            this.player.y += this.tileHeight;
-            this.playerRow++;
+        else if(this.keyD.isDown) {
+            this.player.setVelocityX(this.playerSpeed);
+            this.energy -= resourceConstants.moving;
             this.updateTime();
-            this.mineBlock();
-        }
-        else if(Phaser.Input.Keyboard.JustDown(this.keyD) && this.player.x + this.tileWidth < sizes.width) {
-            this.player.x += this.tileWidth;
-            this.playerColumn++;
-            this.updateTime();
-            this.mineBlock();
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyUp)) {
-            console.log('up pressed');
+            this.mineBlock(0, -this.tileHeight);
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyDown)) {
-            console.log('up pressed');
+            this.mineBlock(0, this.tileHeight);
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyLeft)) {
-            console.log('up pressed');
+            this.mineBlock(-this.tileWidth, 0);
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyRight)) {
-            console.log('up pressed');
+            this.mineBlock(this.tileWidth, 0);
         }
+        else {
+            this.player.setVelocityX(0);
+            this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
+
+            this.energy -= resourceConstants.idle;
+        }
+
+        //display
+        this.energyText.text = `Energy Level: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`;
     }
 
     createDrillArea(rows, columns) {
@@ -188,7 +199,7 @@ class MarsScene extends Phaser.Scene {
     createPlayer(width, height) {
         var widthScale = this.tileWidth / width;
         var heightScale = this.tileHeight / height;
-        var player = this.physics.add.sprite(0.5 * width * widthScale, 0.5 * height * heightScale, 'astronaut').setScale(widthScale, heightScale);
+        var player = this.physics.add.sprite(0, 0, 'astronaut').setScale(widthScale, heightScale);
         player.setActive(true);
         player.setGravityY(physicalConstants.marsGravity);
         player.setCollideWorldBounds(true);
@@ -208,28 +219,31 @@ class MarsScene extends Phaser.Scene {
     }
 
     updateTime() {
-        if(this.playerRow >= 0 && this.map[this.playerRow][this.playerColumn][1] === true) this.months += 3;
-        this.monthText.text = 'Days Elapsed: ' + `${this.months}`;
+        // if(this.playerRow >= 0 && this.map[this.playerRow][this.playerColumn][1] === true) this.months += 3;
+        // this.monthText.text = 'Days Elapsed: ' + `${this.months}`;
     }
 
-    mineBlock() {
-        if(this.playerRow < 0) return;
-        this.map[this.playerRow][this.playerColumn][0].setVisible(false);
-        this.map[this.playerRow][this.playerColumn][1].active = false;
-        if(this.map[this.playerRow][this.playerColumn][2] == imageConstants.uranium) {
+    mineBlock(xOffset, yOffset) {
+        let row = Math.floor((this.player.y + yOffset) / this.tileHeight - 1);
+        let column = Math.floor((this.player.x + xOffset) / this.tileWidth);
+        if(row < 0 || column < 0) return;
+        this.energy -= resourceConstants.mining;
+        this.map[row][column][0].setVisible(false);
+        this.map[row][column][1].active = false;
+        if(this.map[row][column][2] == imageConstants.uranium) {
             this.uranium++;
             this.uraniumText.text = 'Uranium Collected: ' + `${this.uranium}`;
         }
 
-        let blocksAbove = 0;
-        for(let r = 0; r < this.playerRow; r++) {
-            if(this.map[r][this.playerColumn][1] === true) blocksAbove++;
-        }
-        if(blocksAbove >= 3) {
-            this.gameOver = true;
-            this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Game Over: The Ground Above You Collapsed!', { font: '"Press Start 2P"' }).setOrigin(0.5).setScale(3, 3);
-        }
-        console.log(blocksAbove);
+        // let blocksAbove = 0;
+        // for(let r = 0; r < this.playerRow; r++) {
+        //     if(this.map[r][this.playerColumn][1] === true) blocksAbove++;
+        // }
+        // if(blocksAbove >= 3) {
+        //     this.gameOver = true;
+        //     this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Game Over: The Ground Above You Collapsed!', { font: '"Press Start 2P"' }).setOrigin(0.5).setScale(3, 3);
+        // }
+        // console.log(blocksAbove);
     }
 }
 

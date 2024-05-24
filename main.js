@@ -8,7 +8,7 @@ const sizes = {
 
 const physicalConstants = {
     earthGravity: 9.81,
-    marsGravity: 3.71,
+    marsGravity: 3.71 * 15,
     marsFriction: 0.1
 }
 
@@ -97,12 +97,19 @@ class MarsScene extends Phaser.Scene {
         //create objects
         this.map = this.createDrillArea(15, 20);
         this.player = this.createPlayer(24, 24);
+        
+        //add collisions
+        this.colliders = this.addCollisions();
 
         //create input
         this.keyW = this.input.keyboard.addKey('W');
         this.keyA = this.input.keyboard.addKey('A');
         this.keyS = this.input.keyboard.addKey('S');
         this.keyD = this.input.keyboard.addKey('D');
+        this.keyUp = this.input.keyboard.addKey('Up');
+        this.keyDown = this.input.keyboard.addKey('Down');
+        this.keyLeft = this.input.keyboard.addKey('Left');
+        this.keyRight = this.input.keyboard.addKey('Right');
 
         //create trackers
         this.gameOver = false;
@@ -114,21 +121,10 @@ class MarsScene extends Phaser.Scene {
     update(time, delta) {
         if(this.gameOver) return;
 
-        // this.aboveFree = false;
-        if(Phaser.Input.Keyboard.JustDown(this.keyW)) {
-            // if(this.playerRow > 0) {
-            //     if(this.map[this.playerRow - 1][this.playerColumn][1] == true) return;
-            // } else if( this.playerRow < 0) return;
-            // console.log('reached');
-            // this.aboveFree = true;
-            // if(this.map[this.playerRow - 1][this.playerColumn - 1][1] == true) return
-            // console.log('jump left');
+        if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
+            this.player.setVelocityY(-65);
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyA) && this.player.x - this.tileWidth >= 0) {
-            // if(this.aboveFree && this.map[this.playerRow - 1][this.playerColumn - 1][1] == false) {
-            //     console.log('jump left')
-            // }
-            // this.aboveFree = false;
             this.player.x -= this.tileWidth;
             this.playerColumn--;
             this.updateTime();
@@ -141,14 +137,22 @@ class MarsScene extends Phaser.Scene {
             this.mineBlock();
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyD) && this.player.x + this.tileWidth < sizes.width) {
-            // if(this.aboveFree && this.map[this.playerRow - 1][this.playerColumn + 1][1] == false) {
-            //     console.log('jump right')
-            // }
-            // this.aboveFree = false;
             this.player.x += this.tileWidth;
             this.playerColumn++;
             this.updateTime();
             this.mineBlock();
+        }
+        else if(Phaser.Input.Keyboard.JustDown(this.keyUp)) {
+            console.log('up pressed');
+        }
+        else if(Phaser.Input.Keyboard.JustDown(this.keyDown)) {
+            console.log('up pressed');
+        }
+        else if(Phaser.Input.Keyboard.JustDown(this.keyLeft)) {
+            console.log('up pressed');
+        }
+        else if(Phaser.Input.Keyboard.JustDown(this.keyRight)) {
+            console.log('up pressed');
         }
     }
 
@@ -170,9 +174,11 @@ class MarsScene extends Phaser.Scene {
                 }
 
                 map[r][c] = new Array(3);
-                map[r][c][0] = this.add.image(c * this.tileWidth + (0.5 * this.tileWidth), this.tileHeight + (r * this.tileHeight) + (0.5 * this.tileHeight), currentTile)
-                    .setScale(widthScale, heightScale);
-                map[r][c][1] = true;
+                map[r][c][0] = this.physics.add.sprite(c * this.tileWidth + (0.5 * this.tileWidth), this.tileHeight + (r * this.tileHeight) + (0.5 * this.tileHeight), currentTile)
+                    .setScale(widthScale, heightScale).setActive(true);
+                map[r][c][0].body.immovable = true;
+                map[r][c][0].body.moves = false;
+                // map[r][c][1] = true;
                 map[r][c][2] = currentTile;
             }
         }
@@ -183,20 +189,33 @@ class MarsScene extends Phaser.Scene {
         var widthScale = this.tileWidth / width;
         var heightScale = this.tileHeight / height;
         var player = this.physics.add.sprite(0.5 * width * widthScale, 0.5 * height * heightScale, 'astronaut').setScale(widthScale, heightScale);
+        player.setActive(true);
+        player.setGravityY(physicalConstants.marsGravity);
+        player.setCollideWorldBounds(true);
         this.playerRow = -1;
         this.playerColumn = 0;
         return player;
     }
 
+    addCollisions() {
+        let colliders = [];
+        for(let r = 0; r < this.map.length; r++) {
+            for(let c = 0; c < this.map[r].length; c++) {
+                this.map[r][c][1] = this.physics.add.collider(this.map[r][c][0], this.player);
+            }
+        }
+        return colliders;
+    }
+
     updateTime() {
-        if(this.playerRow >= 0 && this.map[this.playerColumn][this.playerColumn][1] === true) this.months += 3;
+        if(this.playerRow >= 0 && this.map[this.playerRow][this.playerColumn][1] === true) this.months += 3;
         this.monthText.text = 'Days Elapsed: ' + `${this.months}`;
     }
 
     mineBlock() {
         if(this.playerRow < 0) return;
         this.map[this.playerRow][this.playerColumn][0].setVisible(false);
-        this.map[this.playerRow][this.playerColumn][1] = false;
+        this.map[this.playerRow][this.playerColumn][1].active = false;
         if(this.map[this.playerRow][this.playerColumn][2] == imageConstants.uranium) {
             this.uranium++;
             this.uraniumText.text = 'Uranium Collected: ' + `${this.uranium}`;
@@ -212,15 +231,6 @@ class MarsScene extends Phaser.Scene {
         }
         console.log(blocksAbove);
     }
-}
-
-class EarthScene extends Phaser.Scene {
-    constructor() {
-        super('earth-scene');
-    }
-    preload() {}
-    create() {}
-    update() {}
 }
 
 const config = {

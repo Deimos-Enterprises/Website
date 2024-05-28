@@ -1,5 +1,6 @@
 // import './style.css'
 // import Phaser from 'phaser'
+//note to self: add easter egg -> mars anime girl?
 
 const sizes = {
     width: window.innerWidth,
@@ -120,14 +121,13 @@ class MarsScene extends Phaser.Scene {
         this.map = this.createDrillArea(rows, columns);
         this.player = this.createPlayer(24, 24, this.tileWidth, 0);
         this.playerSpeed = this.tileWidth * 3;
+        this.playerSpeedScale = 1;
+        this.playerResourceScale = 1;
         this.playerJumpPower = this.tileHeight * 1.8;
         this.refillStation = this.createRefillStation(32, 32, columns * this.tileWidth, 0);
         this.refill = false;
         
         //add collisions
-        // this.objects = this.physics.add.group();
-        // this.objects.add(this.player);
-        // this.objects.add(this.refillStation);
         this.colliders = this.addCollisions();
 
         //create input
@@ -137,6 +137,7 @@ class MarsScene extends Phaser.Scene {
         this.keyD = this.input.keyboard.addKey('D');
         this.keyE = this.input.keyboard.addKey('E');
         this.keyR = this.input.keyboard.addKey('R');
+        this.keyF = this.input.keyboard.addKey('F');
         this.keyUp = this.input.keyboard.addKey('Up');
         this.keyDown = this.input.keyboard.addKey('Down');
         this.keyLeft = this.input.keyboard.addKey('Left');
@@ -146,6 +147,8 @@ class MarsScene extends Phaser.Scene {
         this.gameOver = false;
         this.energy = 100;
         this.energyText = this.add.text(0.125 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
+        this.oxygen = 100;
+        this.oxygenText = this.add.text(0.5 * sizes.width, sizes.height * 0.01, `Oxygen Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
         this.monthText = this.add.text(0.25 * sizes.width, sizes.height * 0.01, 'Days Elapsed: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
         this.months = 0;
         this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
@@ -153,20 +156,23 @@ class MarsScene extends Phaser.Scene {
 
         //natural disasters
         this.lastTime = 0;
+        this.disasterWarningDelay = 1000;
         this.disasterQueued = false;
         this.disasterText = this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Marsquake!', { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setOrigin(0.5).setScale(5);
         this.disasterText.setVisible(false);
         this.disasterEndTime = 0;
 
+        this.dustTime = 4000;
         this.dustBound = new Phaser.Geom.Rectangle(0, 0, sizes.width, this.tileHeight);
         this.dustEmitter = this.add.particles(0, 0, imageConstants.dust, {
-            lifespan: 2000,
+            lifespan: 1500,
             speed: { min: 10, max: 50 },
             scale: { start: 0.1, end: 0.15 },
             // tint: { start: 0xB2996E, end: 0x776649 },
             tint: 0xB2996E,
             blendMode: 'ADD',
-            active: false,
+            duration: this.dustTime,
+            emitting: false,
             x: { min: this.dustBound.left, max: this.dustBound.right }, 
             y: { min: this.dustBound.top, max: this.dustBound.bottom }
         });
@@ -175,21 +181,29 @@ class MarsScene extends Phaser.Scene {
             source: this.dustBound,
             quantity: 100
         });
+        this.dustStormActive = false;
+        this.dustOverlay = this.add.graphics();
+        this.dustOverlay.fillStyle(0x776649, 0.9);
+        this.dustOverlay.fillRect(0, 0, sizes.width, sizes.height);
+        this.dustOverlay.visible = false;
 
     }
     update(time, delta) {
-        if(this.gameOver) return;
+        if(this.gameOver) {
+            this.disasterText.text = 'Game Over!';
+            this.disasterText.setVisible(true);
+            return;
+        }
 
         if(this.disasterQueued) {
-            this.player.anims.play('idle', true);
-            this.player.setVelocityX(0);
-            this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
-            if(this.player.body.velocity.y != 0) return;
-            if(time >= this.disasterEndTime) {
-                if(this.disasterText.text == disasterConstants.marsquake) this.marsquake();
-                else if (this.disasterText.text == disasterConstants.dustStorm) this.dustStorm();
-                return;
+            if(this.disasterText.text == disasterConstants.marsquake) {
+                if(this.player.body.velocity.y != 0) return;
+                this.player.anims.play('idle', true);
+                this.player.setVelocityX(0);
+                this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
+                if(time >= this.disasterEndTime) this.marsquake();
             }
+            else if(this.disasterText.text == disasterConstants.dustStorm) this.dustStorm();            
         }
 
         if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
@@ -197,19 +211,22 @@ class MarsScene extends Phaser.Scene {
             this.energy -= resourceConstants.moving;
         }
         //for testing purposes
-        else if(Phaser.Input.Keyboard.JustDown(this.keyE)) {
-            // this.marsquake();
-            this.dustEmitter.active = true;
+        else if(Phaser.Input.Keyboard.JustDown(this.keyR)) {
+            this.oxygen = 100;
+            this.refill = false;
+        }
+        else if(Phaser.Input.Keyboard.JustDown(this.keyS)) {
+            this.energy = 0;
         }
         else if(this.keyA.isDown) {
             this.player.anims.play('moving', true);
-            this.player.setVelocityX(-this.playerSpeed);
-            this.energy -= resourceConstants.moving;
+            this.player.setVelocityX(-this.playerSpeed * this.playerSpeedScale);
+            this.depleteResources(resourceConstants.moving * this.playerResourceScale);
         }
         else if(this.keyD.isDown) {
             this.player.anims.play('moving', true);
-            this.player.setVelocityX(this.playerSpeed);
-            this.energy -= resourceConstants.moving;
+            this.player.setVelocityX(this.playerSpeed * this.playerSpeedScale);
+            this.depleteResources(resourceConstants.moving * this.playerResourceScale);
         }
         else if(Phaser.Input.Keyboard.JustDown(this.keyUp)) {
             this.mineBlock(0, -this.tileHeight);
@@ -228,30 +245,36 @@ class MarsScene extends Phaser.Scene {
             this.player.setVelocityX(0);
             this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
 
-            this.energy -= resourceConstants.idle;
+            this.depleteResources(resourceConstants.idle * this.playerResourceScale);
         }
 
         if(time - this.lastTime >= 1000 && !this.disasterQueued) { //1000 ms
             this.lastTime = time;
 
             let chance = Math.random();
-            if (chance < disasterConstants.disasterChance) {
+            if (chance < 1 * disasterConstants.disasterChance || Phaser.Input.Keyboard.JustDown(this.keyF)) {
                 this.disasterQueued = true;
                 this.disasterText.text = disasterConstants.marsquake;
                 this.disasterText.setVisible(true);
-                this.disasterEndTime = this.time.now + 1000;
+                this.disasterEndTime = this.time.now + this.disasterWarningDelay;
             }
-            else if (chance < 2 * disasterConstants.disasterChance) {
+            else if (chance < 2 * disasterConstants.disasterChance || Phaser.Input.Keyboard.JustDown(this.keyE)) {
                 this.disasterQueued = true;
                 this.disasterText.text = disasterConstants.dustStorm;
                 this.disasterText.setVisible(true);
-                this.disasterEndTime = this.time.now + 1000;
+                this.disasterEndTime = this.time.now + this.disasterWarningDelay;
             }
         }
 
         //display
-        if(this.energy <= 0) this.gameOver = true;
+        if(this.energy <= 0 || this.oxygen <= 0) this.gameOver = true;
         this.energyText.text = `Energy Level: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`;
+        this.oxygenText.text = `Oxygen Level: ${Math.round((this.oxygen + Number.EPSILON) * 10) / 10}%`;
+    }
+
+    depleteResources(amount) {
+        this.energy -= amount;
+        this.oxygen -= amount * 1.5;
     }
 
     createDrillArea(rows, columns) {
@@ -340,7 +363,7 @@ class MarsScene extends Phaser.Scene {
         let column = Math.floor((this.player.x + xOffset) / this.tileWidth);
         if(row < 0 || column < 0) return;
         if(column == 0 || column == this.map[row].length - 1) return;
-        this.energy -= resourceConstants.mining;
+        this.depleteResources(resourceConstants.mining * this.playerResourceScale);
         this.map[row][column][0].setVisible(false);
         this.map[row][column][1].active = false;
         if(this.map[row][column][2] == imageConstants.uranium) {
@@ -367,15 +390,27 @@ class MarsScene extends Phaser.Scene {
     }
 
     dustStorm() {
-        this.dustEmitter.active = true;
-        if(this.player.y <= this.tileHeight) {
-            this.gameOver = true;
-            console.log("game over");
+        if(!this.dustStormActive) {
+            this.dustEmitter.start(this.dustTime)
+            this.dustOverlay.visible = true;
+            this.time.delayedCall(this.dustTime, function() {
+                this.dustOverlay.visible = false;
+                this.dustStormActive = false;
+                this.disasterQueued = false;
+                this.disasterText.setVisible(false);
+                this.playerResourceScale = 1;
+                this.playerSpeedScale = 1;
+            }, [], this);
+            this.dustStormActive = true;
         }
-        this.time.delayedCall(2000, function() {
-            this.disasterQueued = false;
-            this.disasterText.setVisible(false);
-        }, [], this);
+        let row = Math.floor((this.player.y) / this.tileHeight + 1);
+        console.log(row);
+        this.dustOverlay.alpha = 1 - row * 0.1;
+        let toAdd = 1 - 0.8 * row;
+        if(toAdd < 0) toAdd = 0;
+        this.playerResourceScale = 1 + toAdd;
+        this.playerSpeedScale = 0.15 * row;
+        if(this.playerSpeedScale > 1) this.playerSpeedScale = 1;
     }
 }
 

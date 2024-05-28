@@ -13,7 +13,7 @@ const physicalConstants = {
 }
 
 const scalingConstants = {
-    gravityScale: 50
+    gravityScale: 1
 }
 
 
@@ -83,6 +83,7 @@ class MarsScene extends Phaser.Scene {
         this.load.image('mars-background', 'res/marsbackground.jpg');
         this.load.image('earth-background', 'res/earthbackground.jpg');
         this.load.spritesheet('martian', 'res/martian.png', {frameWidth: 122, frameHeight: 158})
+        this.load.image('ruler', 'res/ruler.png');
     }
     create() {
         console.log('Mars Scene')
@@ -91,6 +92,9 @@ class MarsScene extends Phaser.Scene {
         this.earthBackground.setScale(sizes.width / 313, sizes.height / 200);
         this.marsBackground = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'mars-background');
         this.martian = this.createInteractable('martian', 122, 158, 1, [0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+        this.ruler = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'ruler');
+        this.ruler.setScale(sizes.height / 2868);
+        this.ruler.angle = 90;
 
         this.isEarth = false;
         this.keyE = this.input.keyboard.addKey('E');

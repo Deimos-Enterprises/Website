@@ -9,7 +9,7 @@ const sizes = {
 const physicalConstants = {
     earthGravity: 9.81,
     marsGravity: 3.71 * 15,
-    marsFriction: 0.1
+    marsFriction: 0.1,
 }
 
 const imageConstants = {
@@ -20,13 +20,20 @@ const imageConstants = {
     uranium: 'mars-uranium',
     ice: 'mars-ice',
     player: 'astronaut',
-    refill: 'refill-station'
+    refill: 'refill-station',
+    dust: 'dust'
 }
 
 const resourceConstants = {
     idle: 0.001,
     moving: 0.02,
     mining: 0.06
+}
+
+const disasterConstants = {
+    disasterChance: 0.05,
+    marsquake: 'Marsquake!',
+    dustStorm: 'Dust Storm!'
 }
 
 
@@ -100,6 +107,7 @@ class MarsScene extends Phaser.Scene {
         this.load.image(imageConstants.ice, 'res/marsice.png');
         this.load.spritesheet(imageConstants.player, 'res/astronaut.png', {frameWidth: 24, frameHeight: 24})
         this.load.image(imageConstants.refill, 'res/refillstation.png');
+        this.load.image(imageConstants.dust, 'res/dust.png');
     }
     create() {
         console.log('Mars Scene')
@@ -143,21 +151,45 @@ class MarsScene extends Phaser.Scene {
         this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
         this.uranium = 0;
 
+        //natural disasters
         this.lastTime = 0;
-        this.marsquakeQueued = false;
-        this.marsquakeText = this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Marsquake!', { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setOrigin(0.5).setScale(5);
-        this.marsquakeText.setVisible(false);
-        this.marsquakeEndTime = 0;
+        this.disasterQueued = false;
+        this.disasterText = this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Marsquake!', { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setOrigin(0.5).setScale(5);
+        this.disasterText.setVisible(false);
+        this.disasterEndTime = 0;
+
+        this.dustBound = new Phaser.Geom.Rectangle(0, 0, sizes.width, this.tileHeight);
+        this.dustEmitter = this.add.particles(0, 0, imageConstants.dust, {
+            lifespan: 2000,
+            speed: { min: 10, max: 50 },
+            scale: { start: 0.1, end: 0.15 },
+            // tint: { start: 0xB2996E, end: 0x776649 },
+            tint: 0xB2996E,
+            blendMode: 'ADD',
+            active: false,
+            x: { min: this.dustBound.left, max: this.dustBound.right }, 
+            y: { min: this.dustBound.top, max: this.dustBound.bottom }
+        });
+        this.dustEmitter.setEmitZone({
+            type: 'random',
+            source: this.dustBound,
+            quantity: 100
+        });
+
     }
     update(time, delta) {
         if(this.gameOver) return;
 
-        if(this.marsquakeQueued) {
+        if(this.disasterQueued) {
             this.player.anims.play('idle', true);
             this.player.setVelocityX(0);
             this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
             if(this.player.body.velocity.y != 0) return;
-            if(time >= this.marsquakeEndTime) this.marsquake();
+            if(time >= this.disasterEndTime) {
+                if(this.disasterText.text == disasterConstants.marsquake) this.marsquake();
+                else if (this.disasterText.text == disasterConstants.dustStorm) this.dustStorm();
+                return;
+            }
         }
 
         if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
@@ -166,7 +198,8 @@ class MarsScene extends Phaser.Scene {
         }
         //for testing purposes
         else if(Phaser.Input.Keyboard.JustDown(this.keyE)) {
-            this.marsquake();
+            // this.marsquake();
+            this.dustEmitter.active = true;
         }
         else if(this.keyA.isDown) {
             this.player.anims.play('moving', true);
@@ -198,14 +231,21 @@ class MarsScene extends Phaser.Scene {
             this.energy -= resourceConstants.idle;
         }
 
-        if(time - this.lastTime >= 1000 && !this.marsquakeQueued) { //1000 ms
+        if(time - this.lastTime >= 1000 && !this.disasterQueued) { //1000 ms
             this.lastTime = time;
 
             let chance = Math.random();
-            if (chance < 0.1) {//1% chance
-                this.marsquakeQueued = true;
-                this.marsquakeText.setVisible(true);
-                this.marsquakeEndTime = this.time.now + 1000;
+            if (chance < disasterConstants.disasterChance) {
+                this.disasterQueued = true;
+                this.disasterText.text = disasterConstants.marsquake;
+                this.disasterText.setVisible(true);
+                this.disasterEndTime = this.time.now + 1000;
+            }
+            else if (chance < 2 * disasterConstants.disasterChance) {
+                this.disasterQueued = true;
+                this.disasterText.text = disasterConstants.dustStorm;
+                this.disasterText.setVisible(true);
+                this.disasterEndTime = this.time.now + 1000;
             }
         }
 
@@ -322,8 +362,20 @@ class MarsScene extends Phaser.Scene {
                 if(this.map[r][c][2] == imageConstants.uranium) this.map[r][c][0].setTexture(imageConstants.underground);
             }
         }
-        this.marsquakeQueued = false;
-        this.marsquakeText.setVisible(false);
+        this.disasterQueued = false;
+        this.disasterText.setVisible(false);
+    }
+
+    dustStorm() {
+        this.dustEmitter.active = true;
+        if(this.player.y <= this.tileHeight) {
+            this.gameOver = true;
+            console.log("game over");
+        }
+        this.time.delayedCall(2000, function() {
+            this.disasterQueued = false;
+            this.disasterText.setVisible(false);
+        }, [], this);
     }
 }
 

@@ -18,7 +18,9 @@ const imageConstants = {
     surface: 'mars-surface',
     underground: 'mars-underground',
     uranium: 'mars-uranium',
-    player: 'astronaut'
+    ice: 'mars-ice',
+    player: 'astronaut',
+    refill: 'refill-station'
 }
 
 const resourceConstants = {
@@ -33,6 +35,7 @@ class TitleScene extends Phaser.Scene {
         super('title-scene')
     }
     preload() {
+        this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
         this.load.image('logo', 'res/logo.png');
         this.load.image('teambutton', 'res/teambutton.png');
         this.load.image('infobutton', 'res/infobutton.png');
@@ -94,7 +97,9 @@ class MarsScene extends Phaser.Scene {
         this.load.image(imageConstants.surface, 'res/marssurface.png');
         this.load.image(imageConstants.underground, 'res/marsunderground.png');
         this.load.image(imageConstants.uranium, 'res/marsuranium.png');
-        this.load.spritesheet('astronaut', 'res/astronaut.png', {frameWidth: 24, frameHeight: 24})
+        this.load.image(imageConstants.ice, 'res/marsice.png');
+        this.load.spritesheet(imageConstants.player, 'res/astronaut.png', {frameWidth: 24, frameHeight: 24})
+        this.load.image(imageConstants.refill, 'res/refillstation.png');
     }
     create() {
         console.log('Mars Scene')
@@ -102,12 +107,19 @@ class MarsScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#e77d11');
 
         //create objects
-        this.map = this.createDrillArea(15, 20);
-        this.player = this.createPlayer(24, 24);
+        let rows = 15;
+        let columns = 20;
+        this.map = this.createDrillArea(rows, columns);
+        this.player = this.createPlayer(24, 24, this.tileWidth, 0);
         this.playerSpeed = this.tileWidth * 3;
         this.playerJumpPower = this.tileHeight * 1.8;
+        this.refillStation = this.createRefillStation(32, 32, columns * this.tileWidth, 0);
+        this.refill = false;
         
         //add collisions
+        // this.objects = this.physics.add.group();
+        // this.objects.add(this.player);
+        // this.objects.add(this.refillStation);
         this.colliders = this.addCollisions();
 
         //create input
@@ -116,6 +128,7 @@ class MarsScene extends Phaser.Scene {
         this.keyS = this.input.keyboard.addKey('S');
         this.keyD = this.input.keyboard.addKey('D');
         this.keyE = this.input.keyboard.addKey('E');
+        this.keyR = this.input.keyboard.addKey('R');
         this.keyUp = this.input.keyboard.addKey('Up');
         this.keyDown = this.input.keyboard.addKey('Down');
         this.keyLeft = this.input.keyboard.addKey('Left');
@@ -124,14 +137,28 @@ class MarsScene extends Phaser.Scene {
         //create trackers
         this.gameOver = false;
         this.energy = 100;
-        this.energyText = this.add.text(0.125 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: '"Press Start 2P"' }).setOrigin(0.5);
-        this.monthText = this.add.text(0.25 * sizes.width, sizes.height * 0.01, 'Days Elapsed: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
+        this.energyText = this.add.text(0.125 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
+        this.monthText = this.add.text(0.25 * sizes.width, sizes.height * 0.01, 'Days Elapsed: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
         this.months = 0;
-        this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: '"Press Start 2P"' }).setOrigin(0.5);
+        this.uraniumText = this.add.text(0.75 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
         this.uranium = 0;
+
+        this.lastTime = 0;
+        this.marsquakeQueued = false;
+        this.marsquakeText = this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Marsquake!', { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setOrigin(0.5).setScale(5);
+        this.marsquakeText.setVisible(false);
+        this.marsquakeEndTime = 0;
     }
     update(time, delta) {
         if(this.gameOver) return;
+
+        if(this.marsquakeQueued) {
+            this.player.anims.play('idle', true);
+            this.player.setVelocityX(0);
+            this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
+            if(this.player.body.velocity.y != 0) return;
+            if(time >= this.marsquakeEndTime) this.marsquake();
+        }
 
         if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
             this.player.setVelocityY(-this.playerJumpPower);
@@ -171,6 +198,17 @@ class MarsScene extends Phaser.Scene {
             this.energy -= resourceConstants.idle;
         }
 
+        if(time - this.lastTime >= 1000 && !this.marsquakeQueued) { //1000 ms
+            this.lastTime = time;
+
+            let chance = Math.random();
+            if (chance < 0.1) {//1% chance
+                this.marsquakeQueued = true;
+                this.marsquakeText.setVisible(true);
+                this.marsquakeEndTime = this.time.now + 1000;
+            }
+        }
+
         //display
         if(this.energy <= 0) this.gameOver = true;
         this.energyText.text = `Energy Level: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`;
@@ -191,6 +229,7 @@ class MarsScene extends Phaser.Scene {
                     let rand = Math.floor(Math.random() * (101 - r));
                     currentTile = imageConstants.underground;
                     if(rand <= r / 2) currentTile = imageConstants.uranium;
+                    else if(rand <= r) currentTile = imageConstants.ice;
                 }
 
                 map[r][c] = new Array(3);
@@ -204,10 +243,10 @@ class MarsScene extends Phaser.Scene {
         return map;
     }
         
-    createPlayer(width, height) {
+    createPlayer(width, height, x, y) {
         var widthScale = this.tileWidth / width;
         var heightScale = this.tileHeight / height;
-        var player = this.physics.add.sprite(0, 0, imageConstants.player).setScale(widthScale, heightScale);
+        var player = this.physics.add.sprite(x, y, imageConstants.player).setScale(widthScale, heightScale);
         player.setActive(true);
         player.setGravityY(this.tileHeight * 1.5);
         player.setCollideWorldBounds(true);
@@ -230,6 +269,22 @@ class MarsScene extends Phaser.Scene {
         return player;
     }
 
+    createRefillStation(width, height, x, y) {
+        var widthScale = this.tileWidth / width;
+        var heightScale = this.tileHeight / height;
+        let station = this.physics.add.sprite(x, y, imageConstants.refill).setScale(widthScale, heightScale).setOrigin(1, 0);
+        // station.setCollideWorldBounds(true);
+        // station.setGravityY(this.tileHeight * 1.5);
+        // this.physics.add.collider(station, this.player);
+        station.body.immovable = true;
+        station.body.moves = false;
+        this.physics.add.collider(station, this.player, function() {
+            this.refill = true
+            console.log('col');
+        });
+        return station;
+    }
+
     addCollisions() {
         let colliders = [];
         for(let r = 0; r < this.map.length; r++) {
@@ -244,6 +299,7 @@ class MarsScene extends Phaser.Scene {
         let row = Math.floor((this.player.y + yOffset) / this.tileHeight - 1);
         let column = Math.floor((this.player.x + xOffset) / this.tileWidth);
         if(row < 0 || column < 0) return;
+        if(column == 0 || column == this.map[row].length - 1) return;
         this.energy -= resourceConstants.mining;
         this.map[row][column][0].setVisible(false);
         this.map[row][column][1].active = false;
@@ -254,6 +310,7 @@ class MarsScene extends Phaser.Scene {
     }
 
     marsquake() {
+        this.cameras.main.shake(500, {x: 0.05, y: 0.02});
         let row = Math.floor((this.player.y) / this.tileHeight - 1);
         let column = Math.floor((this.player.x) / this.tileWidth);
         for(let r = 0; r < this.map.length; r++) {
@@ -265,6 +322,8 @@ class MarsScene extends Phaser.Scene {
                 if(this.map[r][c][2] == imageConstants.uranium) this.map[r][c][0].setTexture(imageConstants.underground);
             }
         }
+        this.marsquakeQueued = false;
+        this.marsquakeText.setVisible(false);
     }
 }
 

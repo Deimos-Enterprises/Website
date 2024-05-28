@@ -45,4 +45,5 @@ main {
     height: 100%;
     display: flex;
     z-index: 1;
+    /* image-rendering: pixelated; */
 }

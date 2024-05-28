@@ -195,17 +195,17 @@ class MarsScene extends Phaser.Scene {
             return;
         }
 
-        if(this.disasterQueued) {
-            if(this.disasterText.text == disasterConstants.marsquake) {
-                if(this.player.body.velocity.y != 0) return;
-                this.player.anims.play('idle', true);
-                this.player.setVelocityX(0);
-                this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
-                if(time >= this.disasterEndTime) this.marsquake();
-            }
-            else if(this.disasterText.text == disasterConstants.dustStorm) this.dustStorm();            
-        }
+        if(this.queueDisasters(time, delta)) return;
 
+        this.updateInput(time, delta);
+
+        this.randomizeEvents(time, delta);
+
+        if(this.energy <= 0 || this.oxygen <= 0) this.gameOver = true;
+        this.updateDisplay(time, delta);
+    }
+
+    updateInput(time, delta) {
         if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
             this.player.setVelocityY(-this.playerJumpPower);
             this.energy -= resourceConstants.moving;
@@ -247,7 +247,22 @@ class MarsScene extends Phaser.Scene {
 
             this.depleteResources(resourceConstants.idle * this.playerResourceScale);
         }
+    }
 
+    queueDisasters(time, delta) {
+        if(this.disasterQueued) {
+            if(this.disasterText.text == disasterConstants.marsquake) {
+                if(this.player.body.velocity.y != 0) return true;
+                this.player.anims.play('idle', true);
+                this.player.setVelocityX(0);
+                this.player.x = Math.floor((this.player.x) / this.tileWidth) * this.tileWidth + this.tileWidth / 2;
+                if(time >= this.disasterEndTime) this.marsquake();
+            }
+            else if(this.disasterText.text == disasterConstants.dustStorm) this.dustStorm();            
+        }
+    }
+
+    randomizeEvents(time, delta) {
         if(time - this.lastTime >= 1000 && !this.disasterQueued) { //1000 ms
             this.lastTime = time;
 
@@ -265,9 +280,9 @@ class MarsScene extends Phaser.Scene {
                 this.disasterEndTime = this.time.now + this.disasterWarningDelay;
             }
         }
+    }
 
-        //display
-        if(this.energy <= 0 || this.oxygen <= 0) this.gameOver = true;
+    updateDisplay(time, delta) {
         this.energyText.text = `Energy Level: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`;
         this.oxygenText.text = `Oxygen Level: ${Math.round((this.oxygen + Number.EPSILON) * 10) / 10}%`;
     }

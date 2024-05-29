@@ -139,6 +139,7 @@ class MarsScene extends Phaser.Scene {
         this.keyDown = this.input.keyboard.addKey('Down');
         this.keyLeft = this.input.keyboard.addKey('Left');
         this.keyRight = this.input.keyboard.addKey('Right');
+        this.keySpace = this.input.keyboard.addKey('Space');
 
         //natural disasters
         this.lastTime = 0;
@@ -233,7 +234,7 @@ class MarsScene extends Phaser.Scene {
             this.leave = true;
         });
 
-        if(Phaser.Input.Keyboard.JustDown(this.keyW) && this.player.body.velocity.y == 0) {
+        if((Phaser.Input.Keyboard.JustDown(this.keyW) || Phaser.Input.Keyboard.JustDown(this.keySpace)) && this.player.body.velocity.y == 0) {
             this.player.setVelocityY(-this.playerJumpPower);
             this.energy -= resourceConstants.moving;
         }

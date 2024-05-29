@@ -79,12 +79,17 @@ class ControlsScene extends Phaser.Scene {
     }
     preload() {
         this.load.image('backbutton', 'res/backbutton.png');
+        this.load.image('key', 'res/key.png');
     }
     create() {
-        console.log('Info Scene');
+        console.log('Controls Scene');
         this.backButton = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'backbutton');
         this.backButton.setInteractive();
         this.backButton.on('pointerdown', () => {this.scene.start('title-scene')});
+
+        let scaleX = 0.1 * sizes.width / imageConstants.width;
+        let scaleY = 0.1 * sizes.height / imageConstants.height;
+        this.aKey = this.add.image(0.2 * sizes.width, 0.3 * sizes.height, 'key').setScale(scaleX, scaleY);
     }
     update() {}
 }
@@ -438,6 +443,7 @@ class MarsScene extends Phaser.Scene {
         let column = Math.floor((this.player.x + xOffset) / this.tileWidth);
         if(row < 0 || column < 0) return;
         if(column == 0 || column == this.map[row].length - 1) return;
+        if(this.map[row][column][1].active == false) return;
         this.depleteResources(resourceConstants.mining * this.playerResourceScale);
         this.map[row][column][0].setVisible(false);
         this.map[row][column][1].active = false;

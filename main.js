@@ -505,12 +505,14 @@ class WinScene extends Phaser.Scene {
     }
 
     preload() {
+        this.load.image('background', 'res/marsbackground.jpg');
         this.load.image(imageConstants.restart, 'res/restartbutton.png');
         this.load.image(imageConstants.uranium, 'res/marsuranium.png');
         this.load.image(imageConstants.ice, 'res/marsice.png');
     }
 
     create() {
+        this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
         this.restartButton = this.returnButton = this.add.image(0.5 * sizes.width, 0.75 * sizes.height, imageConstants.restart)
             .setOrigin(0.5);
         this.restartButton.setInteractive();
@@ -519,7 +521,9 @@ class WinScene extends Phaser.Scene {
         this.uraniumImage = this.add.image(0.33 * sizes.width, 0.2 * sizes.height, imageConstants.uranium).setScale(0.18 * sizes.height / imageConstants.tileHeight);
         this.iceImage = this.add.image(0.33 * sizes.width, 0.4 * sizes.height, imageConstants.ice).setScale(0.18 * sizes.height / imageConstants.tileHeight);
 
-        this.scoreText = this.add.text(0.5 * sizes.width, sizes.height * 0.5, 'Marsquake!', { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setOrigin(0.5).setScale(5);
+        this.uraniumText = this.add.text(0.5 * sizes.width,  0.2 * sizes.height, `${this.uranium} x 100 = ${this.uranium * 100}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.iceText = this.add.text(0.5 * sizes.width,  0.4 * sizes.height, `${this.ice} x 50 = ${this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.scoreText = this.add.text(0.5 * sizes.width, 0.6 * sizes.height, `Score: ${this.uranium * 100 + this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
     }
 
     update() {}

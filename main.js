@@ -368,8 +368,8 @@ class MarsScene extends Phaser.Scene {
     }
         
     createPlayer(width, height, x, y) {
-        var widthScale = this.tileWidth / width;
-        var heightScale = this.tileHeight / height;
+        var widthScale = (this.tileWidth - 2) / width;
+        var heightScale = (this.tileHeight - 2) / height;
         var player = this.physics.add.sprite(x, y, imageConstants.player).setScale(widthScale, heightScale);
         player.setActive(true);
         player.setGravityY(this.tileHeight * 1.5);
@@ -394,8 +394,8 @@ class MarsScene extends Phaser.Scene {
     }
 
     createRefillStation(width, height, x, y) {
-        var widthScale = this.tileWidth / width;
-        var heightScale = this.tileHeight / height;
+        var widthScale = (this.tileWidth - 2) / width;
+        var heightScale = (this.tileHeight) / height;
         let station = this.physics.add.sprite(x, y, imageConstants.refill).setScale(widthScale, heightScale).setOrigin(1, 0);
         // station.setCollideWorldBounds(true);
         // station.setGravityY(this.tileHeight * 1.5);
@@ -409,8 +409,8 @@ class MarsScene extends Phaser.Scene {
     }
 
     createRover(width, height, x, y) {
-        var widthScale = this.tileWidth / width;
-        var heightScale = this.tileHeight / height;
+        var widthScale = (this.tileWidth - 2) / width;
+        var heightScale = (this.tileHeight) / height;
         let rover = this.physics.add.sprite(x, y, imageConstants.rover).setScale(widthScale, heightScale).setOrigin(0);
         // rover.setCollideWorldBounds(true);
         // rover.setGravityY(this.tileHeight * 1.5);

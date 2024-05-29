@@ -13,7 +13,7 @@ const physicalConstants = {
 }
 
 const scalingConstants = {
-    gravityScale: 1
+    gravityScale: 15
 }
 
 
@@ -101,8 +101,8 @@ class MarsScene extends Phaser.Scene {
 
         this.timerText = this.add.text(0.01 * sizes.width, sizes.height * 0.01, 'Time Falling(s): 0', { font: '"Press Start 2P"' });
         this.timerText.setScale(3, 3); 
-        this.velocityText = this.add.text(0.01 * sizes.width, sizes.height * 0.06, 'Vertical Velocity(m/s): 0', { font: '"Press Start 2P"' });
-        this.velocityText.setScale(3, 3);
+        // this.velocityText = this.add.text(0.01 * sizes.width, sizes.height * 0.06, 'Vertical Velocity(m/s): 0', { font: '"Press Start 2P"' });
+        // this.velocityText.setScale(3, 3);
         this.lastTime = 0;
     }
     update(time, delta) {
@@ -126,8 +126,8 @@ class MarsScene extends Phaser.Scene {
         }else {
             this.timerText.text = 'Time Falling(s): ' + this.formatTime(time * 0.001 - this.lastTime);
         }
-        var velocity = Math.round((this.martian.body.velocity.y + Number.EPSILON) * 1000) / 1000;
-        this.velocityText.text = 'Vertical Velocity(m/s): ' + `${velocity}`;
+        // var velocity = Math.round((this.martian.body.velocity.y + Number.EPSILON) * 1000) / 1000;
+        // this.velocityText.text = 'Vertical Velocity(m/s): ' + `${velocity}`;
     }
 
     formatTime(seconds){

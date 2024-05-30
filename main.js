@@ -220,12 +220,12 @@ class MarsScene extends Phaser.Scene {
         this.restartButton.on('pointerdown', () => {this.scene.start('title-scene')});
         this.restartButton.setVisible(false);
         this.energy = 100;
-        this.energyText = this.add.text(0.2 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
+        this.energyText = this.add.text(0.2 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
         this.oxygen = 100;
-        this.oxygenText = this.add.text(0.4 * sizes.width, sizes.height * 0.01, `Oxygen Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
-        this.uraniumText = this.add.text(0.6 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
+        this.oxygenText = this.add.text(0.4 * sizes.width, sizes.height * 0.01, `Oxygen Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
+        this.uraniumText = this.add.text(0.6 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
         this.uranium = 0;
-        this.iceText = this.add.text(0.8 * sizes.width, sizes.height * 0.01, 'Ice Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5);
+        this.iceText = this.add.text(0.8 * sizes.width, sizes.height * 0.01, 'Ice Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
         this.ice = 0;
 
         //overlays and stuff

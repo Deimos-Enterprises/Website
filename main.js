@@ -56,6 +56,7 @@ class TitleScene extends Phaser.Scene {
     create() {
         console.log('Title Scene');
         this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
+        this.background.setScale(sizes.width / 1744, sizes.height / 980);
         this.logo = this.add.image(0.5 * sizes.width, 0.3 * sizes.height, 'logo').setScale(0.8);
         this.logo.setInteractive();
         this.logo.on('pointerdown', () => {this.scene.start('mars-scene')});
@@ -78,51 +79,21 @@ class ControlsScene extends Phaser.Scene {
         super('controls-scene')
     }
     preload() {
+        this.load.image('background', 'res/marsbackground.jpg');
         this.load.image('backbutton', 'res/backbutton.png');
-        this.load.image('key', 'res/key.png');
+        this.load.image('keyboard', 'res/keyboard.png');
     }
     create() {
         console.log('Controls Scene');
 
-        this.cameras.main.setBackgroundColor('#8B4000');
+        this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
+        this.background.setScale(sizes.width / 1744, sizes.height / 980);
 
-        this.backButton = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'backbutton');
+        this.backButton = this.add.image(0.1 * sizes.width, 0.1 * sizes.height, 'backbutton').setOrigin(0.5);
         this.backButton.setInteractive();
         this.backButton.on('pointerdown', () => {this.scene.start('title-scene')});
 
-        let scaleImg = 0.1 * sizes.height / imageConstants.tileHeight;
-        let scaleText = 0.2 * sizes.height / 24;
-        let x = 0.2 * sizes.width;
-        let y = 0.3 * sizes.height;
-        this.aKey = this.add.image(x, y, 'key').setScale(scaleImg);
-        this.aText = this.add.text(x, y, "A", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.add.text(x - imageConstants.tileWidth * scaleImg * 1.5, y, "Left", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.dKey = this.add.image(x + 2 * imageConstants.tileWidth * scaleImg, y, 'key').setScale(scaleImg);
-        this.dText = this.add.text(x + 2 * imageConstants.tileWidth * scaleImg, y, "D", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.fKey = this.add.image(x + 3 * imageConstants.tileWidth * scaleImg, y, 'key').setScale(scaleImg);
-        this.fText = this.add.text(x + 3 * imageConstants.tileWidth * scaleImg, y, "F", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.add.text(this.fText.x + imageConstants.tileWidth * scaleImg * 2, y, "Interact", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.wKey = this.add.image(x + 1 * imageConstants.tileWidth * scaleImg, y - 1 * imageConstants.tileHeight * scaleImg, 'key').setScale(scaleImg);
-        this.wText = this.add.text(x + 1 * imageConstants.tileWidth * scaleImg, y - 1 * imageConstants.tileHeight * scaleImg, "W", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-
-        let x2 = 0.7 * sizes.width;
-        let y2 = 0.8 * sizes.height;
-        let yOffset = imageConstants.tileHeight * scaleImg * -0.1;
-        this.laKey = this.add.image(x2, y2, 'key').setScale(scaleImg);
-        this.laText = this.add.text(x2, y2 + yOffset, "←", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.baKey = this.add.image(x2 + 1 * imageConstants.tileWidth * scaleImg, y2, 'key').setScale(scaleImg);
-        this.baText = this.add.text(x2 + 1 * imageConstants.tileWidth * scaleImg, y2 + yOffset, "↓", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.raKey = this.add.image(x2 + 2 * imageConstants.tileWidth * scaleImg, y2, 'key').setScale(scaleImg);
-        this.raText = this.add.text(x2 + 2 * imageConstants.tileWidth * scaleImg, y2 + yOffset, "→", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-        this.uaKey = this.add.image(x2 + 1 * imageConstants.tileWidth * scaleImg, y2 - 1 * imageConstants.tileHeight * scaleImg, 'key').setScale(scaleImg);
-        this.uaText = this.add.text(x2 + 1 * imageConstants.tileWidth * scaleImg, y2 - 1 * imageConstants.tileHeight * scaleImg + yOffset, "↑", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-
-        let x3 = 0.5 * sizes.width;
-        let y3 = 0.8 * sizes.height;
-        let yOffset2 = imageConstants.tileHeight * scaleImg * -0.1;
-        this.spaceKey = this.add.image(x3, y3, 'key').setScale(scaleImg * 3, scaleImg);
-        this.spaceText = this.add.text(x3, y3 + yOffset2, "Space", { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(scaleText).setOrigin(0.5).setStyle({fill: '#000000'});
-
+        this.controls = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'keyboard');
     }
     update() {}
 }

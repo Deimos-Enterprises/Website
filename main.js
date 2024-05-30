@@ -58,8 +58,6 @@ class TitleScene extends Phaser.Scene {
         this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
         this.background.setScale(sizes.width / 1744, sizes.height / 980);
         this.logo = this.add.image(0.5 * sizes.width, 0.3 * sizes.height, 'logo').setScale(0.8);
-        this.logo.setInteractive();
-        this.logo.on('pointerdown', () => {this.scene.start('mars-scene')});
 
         this.playButton = this.add.image(0.5 * sizes.width, 0.65 * sizes.height, 'playbutton');
         this.playButton.setInteractive();
@@ -287,7 +285,7 @@ class MarsScene extends Phaser.Scene {
             this.oxygen = 100;
         }
         else if(this.leave && Phaser.Input.Keyboard.JustDown(this.keyF)) {
-            this.scene.start('win-scene', {uranium: this.uranium, ice: this.ice});
+            this.scene.start('win-scene', {uranium: this.uranium, ice: this.ice, energy: this.energy});
         }
         // else if(Phaser.Input.Keyboard.JustDown(this.keyS)) {
         //     this.energy = 11;
@@ -532,6 +530,7 @@ class WinScene extends Phaser.Scene {
     init(data) {
         this.uranium = data.uranium;
         this.ice = data.ice;
+        this.energy = data.energy;
         console.log(this.uranium);
     }
 
@@ -544,7 +543,8 @@ class WinScene extends Phaser.Scene {
 
     create() {
         this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
-        this.restartButton = this.returnButton = this.add.image(0.5 * sizes.width, 0.75 * sizes.height, imageConstants.restart)
+        this.background.setScale(sizes.width / 1744, sizes.height / 980);
+        this.restartButton = this.returnButton = this.add.image(0.5 * sizes.width, 0.8 * sizes.height, imageConstants.restart)
             .setOrigin(0.5);
         this.restartButton.setInteractive();
         this.restartButton.on('pointerdown', () => {this.scene.start('title-scene')});
@@ -554,7 +554,21 @@ class WinScene extends Phaser.Scene {
 
         this.uraniumText = this.add.text(0.5 * sizes.width,  0.2 * sizes.height, `${this.uranium} x 100 = ${this.uranium * 100}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
         this.iceText = this.add.text(0.5 * sizes.width,  0.4 * sizes.height, `${this.ice} x 50 = ${this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
-        this.scoreText = this.add.text(0.5 * sizes.width, 0.6 * sizes.height, `Score: ${this.uranium * 100 + this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+
+        this.subscore = this.uranium * 100 + this.ice * 50;
+        this.score = this.subscore * 0.9 + this.subscore * 0.1 * this.energy / 100;
+        this.score = Math.round(this.score);
+        console.log(this.score);
+        this.subscoreText = this.add.text(0.5 * sizes.width, 0.55 * sizes.height, `Subcore: ${this.subscore}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.energyText = this.add.text(0.5 * sizes.width, 0.61 * sizes.height, `Energy Left: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.scoreText = this.add.text(0.5 * sizes.width, 0.67 * sizes.height, `Score: ${this.score}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.scoreText.setInteractive();
+        this.scoreText.on('pointerover', () => {
+            this.scoreText.text = `Score = Subscore x 90% + Subscore x 10% x Energy Percentage ÷ 100%`;
+        });
+        this.scoreText.on('pointerout', () => {
+            this.scoreText.text = `Score: ${this.score}`;
+        });
     }
 
     update() {}

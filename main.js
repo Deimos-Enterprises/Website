@@ -219,8 +219,12 @@ class MarsScene extends Phaser.Scene {
         this.restartButton.setInteractive();
         this.restartButton.on('pointerdown', () => {this.scene.start('title-scene')});
         this.restartButton.setVisible(false);
+        this.colors = ['#8B0000', '#FFFFFF'];
+        this.lastTimeDisplay = 0;
+        this.energyIndex = 0;
         this.energy = 100;
         this.energyText = this.add.text(0.2 * sizes.width, sizes.height * 0.01, `Energy Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
+        this.oxygenIndex = 0;
         this.oxygen = 100;
         this.oxygenText = this.add.text(0.4 * sizes.width, sizes.height * 0.01, `Oxygen Level: ${this.energy}%`, { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
         this.uraniumText = this.add.text(0.6 * sizes.width, sizes.height * 0.01, 'Uranium Collected: 0', { font: 'Press Start 2P', fontSize: '24px'}).setOrigin(0.5).setScale(1.5);
@@ -248,6 +252,8 @@ class MarsScene extends Phaser.Scene {
     }
     update(time, delta) {
         if(this.gameOver) {
+            this.player.setVelocityX(0);
+            this.player.setVelocityY(0);
             this.disasterText.text = 'Game Over!';
             this.disasterText.setVisible(true);
             this.restartButton.setVisible(true);
@@ -313,7 +319,8 @@ class MarsScene extends Phaser.Scene {
             this.scene.start('win-scene', {uranium: this.uranium, ice: this.ice});
         }
         // else if(Phaser.Input.Keyboard.JustDown(this.keyS)) {
-        //     this.energy = 0;
+        //     this.energy = 11;
+        //     this.oxygen = 15;
         // }
 
         if(this.refill) {
@@ -367,6 +374,19 @@ class MarsScene extends Phaser.Scene {
     updateDisplay(time, delta) {
         this.energyText.text = `Energy Level: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`;
         this.oxygenText.text = `Oxygen Level: ${Math.round((this.oxygen + Number.EPSILON) * 10) / 10}%`;
+        if(time - this.lastTimeDisplay >= 1000) {
+            this.lastTimeDisplay = time;
+            if(this.energy <= 10) {
+                this.energyText.setStyle({ fill: this.colors[this.energyIndex] });
+                this.energyIndex = (this.energyIndex + 1) % this.colors.length;
+            }
+            else this.energyText.setStyle({ fill: this.colors[1] });
+            if(this.oxygen <= 10) {
+                this.oxygenText.setStyle({ fill: this.colors[this.oxygenIndex] });
+                this.oxygenIndex = (this.oxygenIndex + 1) % this.colors.length;
+            }
+            else this.oxygenText.setStyle({ fill: this.colors[1] });
+        }
     }
 
     depleteResources(amount) {

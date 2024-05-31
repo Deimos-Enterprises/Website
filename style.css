@@ -47,3 +47,17 @@ main {
     z-index: 1;
     /* image-rendering: pixelated; */
 }
+
+#inputBox {
+    position: absolute;
+    top: 150px; /* Adjust this position as needed */
+    left: 120px; /* Adjust this position as needed */
+    font-size: 24px;
+    width: 600px; /* Adjust this width as needed */
+    height: 40px; /* Adjust this height as needed */
+    padding: 5px;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    display: none; /* Initially hidden */
+}

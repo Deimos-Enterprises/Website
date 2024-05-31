@@ -1,6 +1,9 @@
 // import './style.css'
 // import Phaser from 'phaser'
 //note to self: add easter egg -> mars anime girl?
+// gapi.load('client', start);
+
+let globalData;
 
 const sizes = {
     width: window.innerWidth,
@@ -51,24 +54,45 @@ class TitleScene extends Phaser.Scene {
         this.load.image('playbutton', 'res/playbutton.png');
         this.load.image('controlsbutton', 'res/controlsbutton.png');
         this.load.image('background', 'res/marsbackground.jpg');
+        this.load.image('leaderboardbutton', 'res/leaderboardbutton.png');
 
     }
     create() {
         console.log('Title Scene');
+
+        this.input.keyboard.enabled = true;
+
         this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
         this.background.setScale(sizes.width / 1744, sizes.height / 980);
         this.logo = this.add.image(0.5 * sizes.width, 0.3 * sizes.height, 'logo').setScale(0.8);
 
-        this.playButton = this.add.image(0.5 * sizes.width, 0.65 * sizes.height, 'playbutton');
+        this.playButton = this.add.image(0.5 * sizes.width, 0.58 * sizes.height, 'playbutton');
         this.playButton.setInteractive();
         this.playButton.on('pointerdown', () => {this.scene.start('mars-scene')});
-        this.controlsButton = this.add.image(0.5 * sizes.width, 0.82 * sizes.height, 'controlsbutton');
+        this.controlsButton = this.add.image(0.5 * sizes.width, 0.70 * sizes.height, 'controlsbutton');
         this.controlsButton.setInteractive();
         this.controlsButton.on('pointerdown', () => {this.scene.start('controls-scene')});
+        this.leaderboardButton = this.add.image(0.5 * sizes.width, 0.82 * sizes.height, 'leaderboardbutton');
+        this.leaderboardButton.setInteractive();
+        this.leaderboardButton.on('pointerdown', () => {this.scene.start('leaderboard-scene')});
+
+        //other
+        this.initializeExistingData();
     }
 
     update() {
 
+    }
+
+    initializeExistingData() {
+        let existingData = [];
+        for (let i = 0; i < 5; i++) {
+            existingData.push({ name: 'NaN', score: 0 });
+        }
+        localStorage.setItem('scores', JSON.stringify(existingData));
+        let newData = localStorage.getItem('scores');
+        
+        globalData = JSON.parse(newData);
     }
 }
 
@@ -520,6 +544,75 @@ class MarsScene extends Phaser.Scene {
         this.playerSpeedScale = 0.15 * row;
         if(this.playerSpeedScale > 1) this.playerSpeedScale = 1;
     }
+
+    shutdown() {
+        // Remove keyboard events
+        this.input.keyboard.removeKey('W');
+        this.input.keyboard.removeKey('A');
+        this.input.keyboard.removeKey('S');
+        this.input.keyboard.removeKey('D');
+        this.input.keyboard.removeKey('E');
+        this.input.keyboard.removeKey('R');
+        this.input.keyboard.removeKey('F');
+        this.input.keyboard.removeKey('Up');
+        this.input.keyboard.removeKey('Down');
+        this.input.keyboard.removeKey('Left');
+        this.input.keyboard.removeKey('Right');
+        this.input.keyboard.removeKey('Space');
+    }
+}
+
+class LeaderboardScene extends Phaser.Scene {
+    constructor() {
+        super('leaderboard-scene');
+    }
+    preload() {
+        this.load.image('background', 'res/marsbackground.jpg');
+        this.load.image('backbutton', 'res/backbutton.png');
+    }
+    create() {
+        console.log('Leaderboard Scene');
+
+        this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
+        this.background.setScale(sizes.width / 1744, sizes.height / 980);
+
+        let data = globalData;
+
+        let entries = new Array(5);
+        if(data) {
+            data.sort((a, b) => b.score - a.score);
+
+            data.forEach((entry, index) => {
+                console.log(`Entry ${index + 1}: Name - ${entry.name}, Score - ${entry.score}`);
+            });
+
+            for (let i = 0; i < Math.min(5, data.length); i++) {
+                entries[i] = [data[i].name, data[i].score];
+            }
+        } else {
+            for(let i = 0; i < 5; i++) {
+                entries[i] = new Array(2);
+                entries[i][0] = "NaN";
+                entries[i][1] = 0;
+            }
+        }
+
+        let texts = new Array(5);
+        for(let i = 0; i < 5; i++) {
+            texts[i] = this.add.text(0.5 * sizes.width, 0.16 * (i + 1) * sizes.height, `${i+1}. ${entries[i][0]}: ${entries[i][1]}`).setOrigin(0.5).setScale(4);
+        }
+
+        this.backButton = this.add.image(0.1 * sizes.width, 0.1 * sizes.height, 'backbutton').setOrigin(0.5);
+        this.backButton.setInteractive();
+        this.backButton.on('pointerdown', () => {this.scene.start('title-scene')});
+    }
+    update() {
+    }
+
+    getExistingData() {
+        let existingData = localStorage.getItem('scores');
+        return JSON.parse(existingData);
+    }
 }
 
 class WinScene extends Phaser.Scene {
@@ -539,9 +632,11 @@ class WinScene extends Phaser.Scene {
         this.load.image(imageConstants.restart, 'res/restartbutton.png');
         this.load.image(imageConstants.uranium, 'res/marsuranium.png');
         this.load.image(imageConstants.ice, 'res/marsice.png');
+        this.load.image('submitbutton', 'res/submitscorebutton.png');
     }
 
     create() {
+        this.input.keyboard.enabled = false;
         this.background = this.add.image(0.5 * sizes.width, 0.5 * sizes.height, 'background');
         this.background.setScale(sizes.width / 1744, sizes.height / 980);
         this.restartButton = this.returnButton = this.add.image(0.5 * sizes.width, 0.8 * sizes.height, imageConstants.restart)
@@ -549,19 +644,19 @@ class WinScene extends Phaser.Scene {
         this.restartButton.setInteractive();
         this.restartButton.on('pointerdown', () => {this.scene.start('title-scene')});
 
-        this.uraniumImage = this.add.image(0.33 * sizes.width, 0.2 * sizes.height, imageConstants.uranium).setScale(0.18 * sizes.height / imageConstants.tileHeight);
-        this.iceImage = this.add.image(0.33 * sizes.width, 0.4 * sizes.height, imageConstants.ice).setScale(0.18 * sizes.height / imageConstants.tileHeight);
+        this.uraniumImage = this.add.image(0.33 * sizes.width, 0.15 * sizes.height, imageConstants.uranium).setScale(0.12 * sizes.height / imageConstants.tileHeight);
+        this.iceImage = this.add.image(0.33 * sizes.width, 0.3 * sizes.height, imageConstants.ice).setScale(0.12 * sizes.height / imageConstants.tileHeight);
 
-        this.uraniumText = this.add.text(0.5 * sizes.width,  0.2 * sizes.height, `${this.uranium} x 100 = ${this.uranium * 100}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
-        this.iceText = this.add.text(0.5 * sizes.width,  0.4 * sizes.height, `${this.ice} x 50 = ${this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.uraniumText = this.add.text(0.5 * sizes.width,  0.15 * sizes.height, `${this.uranium} x 100 = ${this.uranium * 100}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.iceText = this.add.text(0.5 * sizes.width,  0.3 * sizes.height, `${this.ice} x 50 = ${this.ice * 50}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
 
         this.subscore = this.uranium * 100 + this.ice * 50;
         this.score = this.subscore * 0.9 + this.subscore * 0.1 * this.energy / 100;
         this.score = Math.round(this.score);
         console.log(this.score);
-        this.subscoreText = this.add.text(0.5 * sizes.width, 0.55 * sizes.height, `Subcore: ${this.subscore}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
-        this.energyText = this.add.text(0.5 * sizes.width, 0.61 * sizes.height, `Energy Left: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
-        this.scoreText = this.add.text(0.5 * sizes.width, 0.67 * sizes.height, `Score: ${this.score}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.subscoreText = this.add.text(0.5 * sizes.width, 0.45 * sizes.height, `Subcore: ${this.subscore}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.energyText = this.add.text(0.5 * sizes.width, 0.52 * sizes.height, `Energy Left: ${Math.round((this.energy + Number.EPSILON) * 10) / 10}%`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
+        this.scoreText = this.add.text(0.5 * sizes.width, 0.59 * sizes.height, `Score: ${this.score}`, { font: 'Press Start 2P', fontSize: '24px', antialias: false}).setScale(4).setOrigin(0.5);
         this.scoreText.setInteractive();
         this.scoreText.on('pointerover', () => {
             this.scoreText.text = `Score = Subscore x 90% + Subscore x 10% x Energy Percentage ÷ 100%`;
@@ -569,9 +664,109 @@ class WinScene extends Phaser.Scene {
         this.scoreText.on('pointerout', () => {
             this.scoreText.text = `Score: ${this.score}`;
         });
+
+        this.inputtedText = "NaN";
+        let x = 0.1 * sizes.width;
+        let y = 0.63 * sizes.height;
+        let width = 0.7 * sizes.width;
+        let height = 0.1 * sizes.height;
+        this.textRect = this.add.graphics();
+        this.textRect.fillStyle(0xFF8C00, 0.8);
+        this.textRect.fillRect(x, y, width, height);
+        this.submitButton = this.add.image(0.9 * sizes.width, 0.68 * sizes.height, 'submitbutton');
+        this.submitButton.setInteractive();
+        this.submitButton.on('pointerdown', () => {
+            console.log('submitted');
+            this.appendData(this.inputtedText, this.score);
+        });
+
+        this.userText = this.add.text(x + 20, y + 20, 'Enter name below:', {
+            fontFamily: 'Arial', // Use your chosen font here
+            fontSize: '24px',
+            color: '#ffffff', // White text color
+            wordWrap: { width: width - 40 }
+        });
+
+        this.inputBox = document.getElementById('inputBox');
+        this.inputBox.addEventListener('input', () => {
+            this.inputtedText = this.inputBox.value;
+            this.updateText(this.inputBox.value);
+        });
+        this.inputBox.addEventListener('focus', () => {
+            // this.input.keyboard.enabled = false;
+        });
+        this.inputBox.addEventListener('blur', () => {
+            this.input.keyboard.enabled = true;
+            // this.inputBox.style.display = 'none';
+        });
+        this.textRect.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
+        this.textRect.on('pointerdown', () => {
+            this.inputBox.style.display = 'block';
+            this.inputBox.focus();
+        });
+
+        let self = this;
+
+        window.addEventListener('keydown', (event) => {
+            console.log('Key pressed:', event.key);
+        
+            // Ensure keyboard input is enabled
+            self.input.keyboard.enabled = true;
+        
+            // Dispatch the event to the HTML textbox if it's not focused
+            if (self.inputBox.contains(document.activeElement)) {
+                // Handle key events for the HTML textbox here
+                // For example:
+                if (event.key === 'W' || event.key === 'w') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'A' || event.key === 'a') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'S' || event.key === 's') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'D' || event.key === 'd') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'E' || event.key === 'e') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'R' || event.key === 'r') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                } else if (event.key === 'F' || event.key === 'F') {
+                    self.inputtedText = self.inputBox.value + event.key;
+                    self.inputBox.value += event.key;
+                    self.updateText(self.inputBox.value);
+                }
+            }
+        });
     }
 
-    update() {}
+    updateText(newText) {
+        this.userText.setText('Entered text: ' + newText);
+    }
+
+    update() {
+    }
+
+    appendData(newName, newScore) {
+        let existingData = localStorage.getItem('scores');
+        existingData = existingData ? JSON.parse(existingData) : [];
+        console.log(newName);
+        console.log(newScore);
+        existingData.push({ name: newName, score: newScore });
+        localStorage.setItem('scores', JSON.stringify(existingData));
+        this.new = localStorage.getItem('scores');
+        globalData = JSON.parse(this.new);
+    }
 }
 
 const config = {
@@ -586,7 +781,7 @@ const config = {
             debug:false
         }
     },
-    scene: [TitleScene, ControlsScene, MarsScene, WinScene]
+    scene: [TitleScene, ControlsScene, LeaderboardScene, MarsScene, WinScene]
 }
 
 const game = new Phaser.Game(config)
